@@ -1,6 +1,6 @@
 ---
 name: doer
-description: Execute a planned requirement from .waramity/requirement.md. Reads the REQ, implements the code changes, verifies each acceptance criterion, marks criteria as done, and updates the REQ status to Done. Trigger on phrases like "do REQ", "implement REQ", "execute REQ", "work on REQ", "do requirement", or when the user references a specific REQ number (e.g. "REQ-0001") and wants it implemented. Also trigger when the user selects a requirement title and says "do this" or "implement this".
+description: Execute a planned requirement from .waramity/requirement.md. Reads the REQ, implements the code changes, verifies each acceptance criterion, marks criteria as done, and updates the REQ status to Wait to Review. Trigger on phrases like "do REQ", "implement REQ", "execute REQ", "work on REQ", "do requirement", or when the user references a specific REQ number (e.g. "REQ-0001") and wants it implemented. Also trigger when the user selects a requirement title and says "do this" or "implement this".
 ---
 
 # Requirement Doer
@@ -17,7 +17,7 @@ When the user asks to implement a requirement from `.waramity/requirement.md` �
    - User's selection or description matching a filename title
    - If ambiguous, show the list and ask the user which REQ to implement
 3. Read the matched individual file (e.g. `.waramity/requirement/0005-auto-smooth-paint-mask-edges.md`)
-4. Confirm the REQ has status `🟡 Planned` — if already `✅ Done`, tell the user and stop
+4. Confirm the REQ has status `🟡 Planned` or `🚧 WIP` — if already `⏳ Wait to Review`, tell the user it's done and ready to ship; stop
 
 ### Step 2: Understand the Requirement
 
@@ -29,9 +29,20 @@ Read and internalize:
 
 Before coding, read all files mentioned in the Notes section and any files relevant to understanding the change.
 
+Invoke `agent-skills:context-engineering` to ensure the right files and context are loaded before writing any code.
+
 ### Step 3: Implement
 
 Make the code changes needed to satisfy all acceptance criteria.
+
+Follow `agent-skills:incremental-implementation` — build one thin vertical slice at a time, verify it works before expanding. Do not write all the code at once.
+
+Apply contextual skills based on what the REQ touches:
+- **UI/canvas/rendering work** → invoke `agent-skills:frontend-ui-engineering`
+- **New interfaces or APIs** → invoke `agent-skills:api-and-interface-design`
+- **Security-sensitive changes** → invoke `agent-skills:security-and-hardening`
+- **Render-loop or real-time performance** → invoke `agent-skills:performance-optimization`
+- **Something breaks during implementation** → invoke `agent-skills:debugging-and-error-recovery`
 
 **Rules:**
 - Follow the decisions from the plan — don't deviate unless something is clearly wrong
@@ -41,6 +52,8 @@ Make the code changes needed to satisfy all acceptance criteria.
 
 ### Step 4: Verify Acceptance Criteria
 
+Invoke `agent-skills:test-driven-development` to prove each criterion. For browser/canvas rendering, use `agent-skills:browser-testing-with-devtools` for runtime verification.
+
 Go through **each** acceptance criterion one by one:
 
 1. Read the relevant code to confirm the criterion is met
@@ -49,12 +62,14 @@ Go through **each** acceptance criterion one by one:
 
 **Do not skip verification.** Each criterion must be individually confirmed with evidence from the code.
 
+After all criteria pass, invoke `agent-skills:code-review-and-quality` for a five-axis review (correctness, readability, architecture, security, performance) before marking the REQ ready for review.
+
 ### Step 5: Update the Requirement File
 
 After all criteria are verified, edit the individual REQ file in-place:
 
 1. Check off each acceptance criterion: `- [ ]` becomes `- [x]`
-2. Update status: `🟡 Planned` becomes `✅ Done`
+2. Update status: `🟡 Planned` becomes `⏳ Wait to Review`
 
 ### Step 6: Report
 

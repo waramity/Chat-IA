@@ -5,7 +5,7 @@ description: Commit and push code for a completed requirement, then remove it fr
 
 # Requirement Shipper
 
-After a requirement has been implemented and marked `✅ Done`, this skill commits the changes, pushes to remote, and removes the REQ entry from the plan file.
+After a requirement has been implemented and marked `⏳ Wait to Review`, this skill commits the changes, pushes to remote, and removes the REQ entry from the plan file.
 
 ## Workflow
 
@@ -18,8 +18,12 @@ After a requirement has been implemented and marked `✅ Done`, this skill commi
    - If only one REQ file has status `✅ Done`, use that one
    - If ambiguous, show the list and ask the user which REQ to ship
 3. Read the matched individual file
-4. Confirm the REQ has status `✅ Done` — if still `🟡 Planned`, tell the user to implement it first and stop
+4. Confirm the REQ has status `⏳ Wait to Review` — if still `🟡 Planned`, tell the user to implement it first and stop
 5. Save the REQ title, description, and filename for the commit message
+
+### Step 1b: Pre-Ship Review
+
+Before committing, invoke `agent-skills:code-review-and-quality` if it was not already run during the doer step. Do not skip this for any REQ that modifies shared logic.
 
 ### Step 2: Stage and Commit
 
@@ -62,8 +66,14 @@ Remove completed REQ-{NNNN} from requirement plan
 
 ### Step 4: Push
 
+Follow `agent-skills:git-workflow-and-versioning` for the push — ensure the commit is atomic and the message is clean.
+
 1. Push to remote: `rtk git push`
 2. If push fails due to upstream changes, run `rtk git pull --rebase` then `rtk git push`
+
+### Step 4b: Post-Push (production-impacting REQs only)
+
+If the REQ changes logic visible to live users (rendering, scoring, game rules), invoke `agent-skills:shipping-and-launch` for a pre-launch checklist and rollback plan.
 
 ### Step 5: Report
 
