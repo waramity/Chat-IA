@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Analyze code or a coding task, clarify requirements interactively, and produce a structured plan saved to .waramity/requirement/. Use this skill whenever the user shares code, a feature idea, bug report, refactor plan, or any development task and wants to plan before coding. Trigger on phrases like "plan this", "check this code", "analyze this requirement", "what do I need", "let's plan", "review before coding", or any time the user pastes code or a spec and wants structured planning. Also trigger when the user mentions ".waramity", "requirement plan", or "requirement.md". This skill asks clarifying questions with 4 options (pre-selecting a reasonable default), writes an issue-style document with a 1–5 difficulty rating (reason + cautions), and appends everything to .waramity/requirement/ so plans accumulate over time.
+description: Analyze code or a coding task, clarify requirements interactively, and produce a structured plan saved to .waramity/dev/requirement/. Use this skill whenever the user shares code, a feature idea, bug report, refactor plan, or any development task and wants to plan before coding. Trigger on phrases like "plan this", "check this code", "analyze this requirement", "what do I need", "let's plan", "review before coding", or any time the user pastes code or a spec and wants structured planning. Also trigger when the user mentions ".waramity", "requirement plan", or "requirement.md". This skill asks clarifying questions with 4 options (pre-selecting a reasonable default), writes an issue-style document with a 1–5 difficulty rating (reason + cautions), and appends everything to .waramity/dev/requirement/ so plans accumulate over time.
 ---
 
 # Requirement Planner
@@ -111,7 +111,7 @@ After the user answers (or accepts defaults), produce the full plan with these s
 Before creating any new file, check whether the task is already tracked as a WIP:
 
 ```bash
-ls .waramity/wip/ 2>/dev/null
+ls .waramity/dev/wip/ 2>/dev/null
 ```
 
 - If a matching WIP file exists (e.g. the user's message references `WIP-NNNN` or the topic clearly matches an existing WIP), **edit that file** — update the "What Needs to Happen Next" section with the new plan. Do NOT create a new requirement file.
@@ -119,7 +119,7 @@ ls .waramity/wip/ 2>/dev/null
 
 #### Creating a new requirement (only when no WIP matches)
 
-Save the plan as an individual file inside `.waramity/requirement/`.
+Save the plan as an individual file inside `.waramity/dev/requirement/`.
 
 Each REQ gets its own file named `{NNNN}-{slug}.md` — never append to a shared file.
 
@@ -129,13 +129,13 @@ Each REQ gets its own file named `{NNNN}-{slug}.md` — never append to a shared
 mkdir -p .waramity/requirement
 
 # Find next REQ number by scanning existing filenames
-LAST=$(ls .waramity/requirement/ 2>/dev/null | grep -oE '^[0-9]+' | sort -n | tail -1)
+LAST=$(ls .waramity/dev/requirement/ 2>/dev/null | grep -oE '^[0-9]+' | sort -n | tail -1)
 NEXT=$(printf "%04d" $((10#${LAST:-0} + 1)))
 
 # Slug the title: lowercase, hyphens, no special chars
 SLUG=$(echo "{Title}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
 
-FILE=".waramity/requirement/${NEXT}-${SLUG}.md"
+FILE=".waramity/dev/requirement/${NEXT}-${SLUG}.md"
 
 # Write the new REQ file (single > is correct — this is a new file each time)
 cat > "$FILE" << 'PLAN'
@@ -153,7 +153,7 @@ The file starts directly with `## 📋 REQ-{NEXT}:` — no outer header, no `---
 
 After saving, tell the user:
 - Show the plan inline (the full formatted plan)
-- Confirm it was saved to `.waramity/requirement/{NNNN}-{slug}.md`
+- Confirm it was saved to `.waramity/dev/requirement/{NNNN}-{slug}.md`
 - Ask: "Ready to start working on this, or want to adjust anything?"
 
 ## Edge Cases

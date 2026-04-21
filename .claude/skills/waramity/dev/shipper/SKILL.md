@@ -1,6 +1,6 @@
 ---
 name: shipper
-description: Commit and push code for a completed requirement, then remove it from .waramity/requirement.md. Use after doer has finished implementing a REQ. Trigger on phrases like "ship REQ", "commit REQ", "push REQ", "ship requirement", "commit and push", "done with REQ", "close REQ", "finish REQ", or when the user wants to commit work tied to a specific requirement.
+description: Commit and push code for a completed requirement, then remove it from .waramity/dev/requirement/. Use after doer has finished implementing a REQ. Trigger on phrases like "ship REQ", "commit REQ", "push REQ", "ship requirement", "commit and push", "done with REQ", "close REQ", "finish REQ", or when the user wants to commit work tied to a specific requirement.
 ---
 
 # Requirement Shipper
@@ -11,7 +11,7 @@ After a requirement has been implemented and marked `⏳ Wait to Review`, this s
 
 ### Step 1: Identify the Requirement
 
-1. List `.waramity/requirement/` to see all REQ files (filenames show status emoji: 🟡 Planned, 🚧 WIP, ⏳ Wait to Review, ✅ Done)
+1. List `.waramity/dev/requirement/` to see all REQ files (filenames show status emoji: 🟡 Planned, 🚧 WIP, ⏳ Wait to Review, ✅ Done)
 2. Find the target file by:
    - Explicit REQ number from user (e.g. "REQ-0001" → file with `0001-` in name)
    - User's selection or description matching a filename title
@@ -51,7 +51,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 Find and delete the REQ file by REQ number (avoids emoji/spacing mismatches):
 
 ```bash
-REQ_FILE=$(ls ".waramity/requirement/"*{NNNN}*.md 2>/dev/null | head -1)
+REQ_FILE=$(ls ".waramity/dev/requirement/"*{NNNN}*.md 2>/dev/null | head -1)
 rm "$REQ_FILE"
 ```
 
@@ -72,11 +72,11 @@ Tell the user:
 - Commit hash and message
 - Which REQ file was deleted
 - Confirm push succeeded
-- How many REQ files remain in `.waramity/requirement/`
+- How many REQ files remain in `.waramity/dev/requirement/`
 
 ## Edge Cases
 
 - **No changed files**: If `git status` shows no changes, the code may already be committed. Ask the user if they want to just remove the REQ from the plan.
 - **Unrelated changes in working tree**: Only stage files relevant to the REQ. If unsure which files are related, show the diff and ask the user.
 - **Multiple done REQs**: Ship them one at a time unless the user asks to batch them.
-- **Last REQ file being shipped**: The `.waramity/requirement/` directory will be empty — that's fine, leave the directory.
+- **Last REQ file being shipped**: The `.waramity/dev/requirement/` directory will be empty — that's fine, leave the directory.

@@ -1,6 +1,6 @@
 ---
 name: fail
-description: Abandon a requirement by reverting only the code changes related to it, then removing its REQ file and any associated WIP file. Trigger on phrases like "fail REQ", "revert REQ", "abandon REQ", "scrap REQ", "undo REQ", "cancel REQ", "throw away REQ", or when the user wants to discard work tied to a specific requirement.
+description: Abandon a requirement by reverting only the code changes related to it, then removing its REQ file from .waramity/dev/requirement/ and any associated WIP file from .waramity/dev/wip/. Trigger on phrases like "fail REQ", "revert REQ", "abandon REQ", "scrap REQ", "undo REQ", "cancel REQ", "throw away REQ", or when the user wants to discard work tied to a specific requirement.
 ---
 
 # Requirement Fail
@@ -11,7 +11,7 @@ Revert code changes tied to a specific REQ, then delete its REQ file and any ass
 
 ### Step 1: Identify the REQ to Fail
 
-1. List `.waramity/requirement/` and `.waramity/wip/`
+1. List `.waramity/dev/requirement/` and `.waramity/dev/wip/`
 2. Find the target REQ by explicit number or description match. If ambiguous, show the list and ask.
 3. Read the REQ file to understand scope
 4. Read the WIP file if one exists — the "Files Changed" section is the primary source of truth for what to revert
@@ -79,10 +79,10 @@ After all files are restored, run `rtk git diff --staged` and show the user the 
 **Rule: removing the REQ always removes every WIP file that shares its number — no exceptions.**
 
 ```bash
-REQ_FILE=$(ls ".waramity/requirement/"*"{NNNN}"*.md 2>/dev/null | head -1)
+REQ_FILE=$(ls ".waramity/dev/requirement/"*"{NNNN}"*.md 2>/dev/null | head -1)
 
 # Find ALL WIP files with this REQ number (there may be more than one)
-WIP_FILES=$(ls ".waramity/wip/"*"{NNNN}"*.md 2>/dev/null)
+WIP_FILES=$(ls ".waramity/dev/wip/"*"{NNNN}"*.md 2>/dev/null)
 
 git rm "$REQ_FILE"
 
@@ -125,7 +125,7 @@ Tell the user:
 - Which files were reverted and to what base
 - Which REQ file was deleted
 - Which WIP file was deleted (if any)
-- How many REQ files remain in `.waramity/requirement/`
+- How many REQ files remain in `.waramity/dev/requirement/`
 
 ## Edge Cases
 

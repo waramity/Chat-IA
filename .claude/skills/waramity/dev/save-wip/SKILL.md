@@ -1,6 +1,6 @@
 ---
 name: save-wip
-description: Save, commit, and push work-in-progress code that may have bugs or is not yet complete. Asks whether to push to the same branch or a new branch, records a WIP label explaining what's unfinished and why, and appends a checkpoint entry to .waramity/wip.md for future reference. Trigger on phrases like "save my progress", "checkpoint this", "push WIP", "save even though it's broken", "commit unfinished work", "save draft", "push wip", "checkpoint", or when the user is unsure if the code works but wants to preserve and push it.
+description: Save, commit, and push work-in-progress code that may have bugs or is not yet complete. Asks whether to push to the same branch or a new branch, records a WIP label explaining what's unfinished and why, and appends a checkpoint entry to .waramity/dev/wip/ for future reference. Trigger on phrases like "save my progress", "checkpoint this", "push WIP", "save even though it's broken", "commit unfinished work", "save draft", "push wip", "checkpoint", or when the user is unsure if the code works but wants to preserve and push it.
 ---
 
 # Requirement Save WIP
@@ -84,19 +84,19 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Step 5b: Update REQ Status and Capture Path
 
-If the WIP work is tied to a REQ file in `.waramity/requirement/`:
+If the WIP work is tied to a REQ file in `.waramity/dev/requirement/`:
 
 1. Find the relevant REQ file (by matching the work description or files changed)
-2. Capture the relative path from `.waramity/wip/` — e.g., `../requirement/0010-fix-ball-bounce-skip-frame.md`
+2. Capture the relative path from `.waramity/dev/wip/` — e.g., `../requirement/0010-fix-ball-bounce-skip-frame.md`
 3. If found and status is `🟡 Planned`, update it to `🚧 WIP`
 
 This keeps the requirement status honest — the work has started but is not yet finished.
 
 **Capture the REQ path for use in Step 6:** store it in variable `{REQ-PATH}` (e.g., `../requirement/0010-fix-ball-bounce-skip-frame.md`). If no REQ was found, leave `{REQ-PATH}` empty — the field will be omitted from the WIP file.
 
-### Step 6: Record in .waramity/wip/
+### Step 6: Record in .waramity/dev/wip/
 
-Save a checkpoint entry as an individual file inside `.waramity/wip/`.
+Save a checkpoint entry as an individual file inside `.waramity/dev/wip/`.
 
 Each WIP gets its own file named `{NNNN}-{slug}.md` — never append to a shared file.
 
@@ -106,13 +106,13 @@ Each WIP gets its own file named `{NNNN}-{slug}.md` — never append to a shared
 mkdir -p .waramity/wip
 
 # Find next WIP number by scanning existing filenames
-LAST=$(ls .waramity/wip/ 2>/dev/null | grep -oP '^\d+' | sort -n | tail -1)
+LAST=$(ls .waramity/dev/wip/ 2>/dev/null | grep -oP '^\d+' | sort -n | tail -1)
 NEXT=$(printf "%04d" $((10#${LAST:-0} + 1)))
 
 # Slug the brief description: lowercase, hyphens, no special chars
 SLUG=$(echo "{Brief Description}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
 
-FILE=".waramity/wip/${NEXT}-${SLUG}.md"
+FILE=".waramity/dev/wip/${NEXT}-${SLUG}.md"
 
 # Write the new WIP file (single > is correct — this is a new file each time)
 cat > "$FILE" << 'ENTRY'
@@ -143,7 +143,7 @@ The file starts directly with `## 🚧 WIP-{NEXT}:` — no outer header, no `---
 Tell the user:
 - Commit hash and branch it was pushed to
 - The WIP label applied
-- Confirm `.waramity/wip/{NNNN}-{slug}.md` was created
+- Confirm `.waramity/dev/wip/{NNNN}-{slug}.md` was created
 - What needs to happen next (echo back what they said)
 - Reminder: "When this is fixed and ready to ship, use `/shipper` or just commit normally."
 
