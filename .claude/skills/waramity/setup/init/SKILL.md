@@ -1,6 +1,6 @@
 ---
 name: init
-description: Initialize the .waramity/dev/ folder structure in the current project, and optionally pull the latest waramity skill version from the remote repository. Trigger on phrases like "init waramity", "setup waramity", "initialize .waramity", "pull latest skill", "update waramity skill", "setup project", or when the user wants to start using waramity in a new project.
+description: Initialize the .waramity/ folder structure (dev, business, design) in the current project, and optionally pull the latest waramity skill version from the remote repository. Trigger on phrases like "init waramity", "setup waramity", "initialize .waramity", "pull latest skill", "update waramity skill", "setup project", or when the user wants to start using waramity in a new project.
 ---
 
 # Skill: init
@@ -12,10 +12,10 @@ Bootstrap the `.waramity/` folder structure for the current project and optional
 ### Step 1: Check Existing State
 
 ```bash
-ls -la .waramity/dev/ 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
+ls -la .waramity/ 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
 ```
 
-- If `.waramity/dev/` already exists, show the current structure and ask: "`.waramity/dev/` already exists. Do you want to (1) add missing folders only, (2) pull latest skill version, or (3) both?"
+- If `.waramity/` already exists, show the current structure and ask: "`.waramity/` already exists. Do you want to (1) add missing folders only, (2) pull latest skill version, or (3) both?"
 - If not found, proceed to Step 2.
 
 ---
@@ -27,23 +27,47 @@ Create all required directories:
 ```bash
 mkdir -p .waramity/dev/requirement
 mkdir -p .waramity/dev/wip
-echo ".waramity/dev folder initialized."
-ls -la .waramity/dev/
+mkdir -p .waramity/business
+mkdir -p .waramity/design
+echo ".waramity folder initialized."
+ls -la .waramity/
 ```
 
 Expected structure:
 ```
 .waramity/
+├── business/          # Business documents and requirements
+├── design/            # Design assets and specifications
 └── dev/
     ├── requirement/   # Planned REQ files (REQ-NNNN-slug.md)
     └── wip/           # Work-in-progress files (WIP-NNNN-slug.md)
 ```
 
-Confirm success: "`.waramity/dev/` structure created with `requirement/` and `wip/` folders."
+Confirm success: "`.waramity/` structure created with `business/`, `design/`, and `dev/` folders."
 
 ---
 
-### Step 3: Pull Latest Skill Version (Optional)
+### Step 3: Download Karpathy-Style CLAUDE.md Guidelines
+
+Download the Andrej Karpathy coding guidelines to the project's `.claude/CLAUDE.md`:
+
+```bash
+mkdir -p .claude
+gh api repos/forrestchang/andrej-karpathy-skills/contents/CLAUDE.md -q .content \
+  | base64 -d > .claude/CLAUDE.md \
+  && echo "Downloaded: .claude/CLAUDE.md (Karpathy guidelines)" \
+  || echo "Failed to download CLAUDE.md"
+```
+
+This provides 4 core principles:
+1. **Think Before Coding** - Surface assumptions and tradeoffs
+2. **Simplicity First** - Minimum code, nothing speculative
+3. **Surgical Changes** - Only necessary edits, no cosmetic improvements
+4. **Goal-Driven Execution** - Define success criteria, loop until verified
+
+---
+
+### Step 4: Pull Latest Skill Version (Optional)
 
 Ask the user:
 > "Do you also want to pull the latest waramity skill from `waramity/waramity-skills`? This will update your local `~/.claude/skills/waramity/` files."
@@ -80,16 +104,21 @@ Confirm: "Waramity skill updated to latest version from `waramity/waramity-skill
 
 ---
 
-### Step 4: Present Summary
+### Step 5: Present Summary
 
 After completing, show:
 
 ```
 Initialization complete:
 
-  Project .waramity/dev/:
+  Project .waramity/:
+    OK .waramity/business/         -- store business documents here
+    OK .waramity/design/           -- store design assets here
     OK .waramity/dev/requirement/  -- store planned REQ files here
     OK .waramity/dev/wip/          -- store WIP checkpoints here
+
+  Guidelines:
+    OK .claude/CLAUDE.md           -- Karpathy-style coding principles
 
   Next steps:
     - Plan a task:  /waramity  -> "plan this: <description>"
@@ -102,7 +131,7 @@ Initialization complete:
 
 ## Rules
 
-- Never overwrite existing files in `.waramity/dev/` -- only create missing directories.
+- Never overwrite existing files in `.waramity/` -- only create missing directories.
 - Always use `rtk gh` prefix for remote operations per CLAUDE.md golden rule.
 - Never pull skill files into the project directory -- skills always go to `~/.claude/skills/waramity/`.
 - If `gh` CLI is unavailable, skip the pull step and inform the user.
@@ -113,8 +142,8 @@ Initialization complete:
 
 ### Initialize a fresh project
 ```bash
-mkdir -p .waramity/dev/requirement .waramity/dev/wip
-ls -la .waramity/dev/
+mkdir -p .waramity/dev/requirement .waramity/dev/wip .waramity/business .waramity/design
+ls -la .waramity/
 ```
 
 ### Pull latest skill only (no folder init needed)

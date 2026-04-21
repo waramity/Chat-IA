@@ -1,26 +1,24 @@
 ---
 name: update
 description: >
-  Validate and update skill references across router files.
-  Checks for broken paths, outdated names, and mismatched connections.
+  Validate skill routers and sync to waramity-skills GitHub README.md.
+  Checks broken paths, outdated names, mismatched connections, then updates README.
   Triggers on: "check skills", "validate skills", "fix skill paths",
-  "skill integrity", "update skill references", "check skill routes".
+  "update skills readme", "sync skills to github", "push skills list".
 ---
 
 # Skill: update
 
-Validate skill router references and fix broken/outdated connections.
+Validate skill router references and sync skills list to GitHub README.md.
 
 ## Purpose
 
-Scans all skill files to find:
-- Router files that reference non-existent paths
-- Sub-skills with names that don't match router entries
-- Broken connections between parent routers and sub-skills
+1. **Validate**: Scan all skill files for broken paths, name mismatches, and broken connections
+2. **Sync**: Update README.md in https://github.com/waramity/waramity-skills with current skills table
 
 ---
 
-## Workflow
+## Part 1: Validate Skill Routers
 
 ### Step 1: Scan All Skill Files
 
@@ -62,7 +60,7 @@ For each reference found:
 
 ---
 
-### Step 4: Generate Report
+### Step 4: Generate Validation Report
 
 Output a report in this format:
 
@@ -92,17 +90,152 @@ Need update: 2
 
 ---
 
-### Step 5: Ask User
+### Step 5: Fix Issues (if requested)
 
-Present the issues found and ask:
+When user approves fixes:
 
-> "Found {N} issues in skill references:
->
-> 1. **{issue_type}**: {description}
->    - Current: {current_value}
->    - Should be: {expected_value}
->
-> Do you want me to fix these? (yes/no/select specific)"
+#### Fix Broken Path
+```bash
+# Update the router file with correct path
+# Old: → `.claude/skills/waramity/init/SKILL.md`
+# New: → `.claude/skills/waramity/setup/init/SKILL.md`
+```
+
+#### Fix Name Mismatch
+```bash
+# Option A: Update router to use new name
+# Option B: Update sub-skill frontmatter to use old name
+# Always ask user which option they prefer
+```
+
+---
+
+## Part 2: Sync to GitHub README
+
+### Step 1: Extract Skill Information
+
+For each SKILL.md, extract:
+- `name:` from frontmatter
+- `description:` from frontmatter
+- Relative path from waramity/
+
+```bash
+# Extract name and description from a SKILL.md file
+extract_frontmatter() {
+  local file="$1"
+  awk '/^---$/{n++; next} n==1{print}' "$file" | grep -E "^(name|description):"
+}
+```
+
+---
+
+### Step 2: Build Skills Table
+
+Generate markdown table with columns:
+| Skill | Category | Description |
+
+Categories are derived from the folder structure:
+- `setup/init` → Category: setup
+- `dev/planner` → Category: dev
+- `business/gh-remote` → Category: business
+
+---
+
+### Step 3: Fetch Current README
+
+Use GitHub CLI to get current README content:
+
+```bash
+REPO="waramity/waramity-skills"
+
+# Check if README exists
+gh api repos/$REPO/contents/README.md --jq '.content' | base64 -d 2>/dev/null
+```
+
+---
+
+### Step 4: Update Skills Section
+
+The README should have a marked section for the skills table:
+
+```markdown
+<!-- SKILLS-START -->
+| Skill | Category | Description |
+|-------|----------|-------------|
+| init | setup | Initialize waramity skills configuration |
+| planner | dev | Analyze and plan implementation tasks |
+...
+<!-- SKILLS-END -->
+```
+
+Replace content between markers with the new table.
+
+---
+
+### Step 5: Push to GitHub
+
+After user confirmation, push the updated README:
+
+```bash
+REPO="waramity/waramity-skills"
+
+# Create or update README.md
+gh api repos/$REPO/contents/README.md \
+  -X PUT \
+  -f message="docs: sync skills list from local" \
+  -f content="$(echo "$NEW_CONTENT" | base64)" \
+  -f sha="$CURRENT_SHA"  # Required for updates, omit for new file
+```
+
+---
+
+## Generated Table Format
+
+```markdown
+# waramity-skills
+
+Claude Code skills for development workflows.
+
+<!-- SKILLS-START -->
+## Skills
+
+| Skill | Category | Description |
+|-------|----------|-------------|
+| waramity | router | Unified requirement workflow router |
+| init | setup | Initialize waramity skills configuration |
+| update | setup | Validate routers and sync to GitHub |
+| planner | dev | Analyze and plan tasks |
+| doer | dev | Implement planned requirements |
+| save-wip | dev | Commit unfinished work |
+| shipper | dev | Commit and push completed work |
+| fail | dev | Revert and delete failed requirements |
+| track | dev | Show uncommitted files and commit plan |
+| gh-remote | business | GitHub operations without local git |
+<!-- SKILLS-END -->
+
+## Installation
+
+...
+```
+
+---
+
+## Quick Commands
+
+### Validate only (no GitHub sync)
+```
+/waramity → "check skills" or "validate skills"
+```
+
+### Validate and fix
+```
+/waramity → "fix skill paths" or "update skill references"
+```
+
+### Full update (validate + sync to GitHub)
+```
+/waramity → "update skills readme" or "sync skills to github"
+```
 
 ---
 
@@ -131,81 +264,60 @@ Check: Is the hierarchy consistent?
 
 ---
 
-## Fix Actions
-
-When user approves fixes:
-
-### Fix Broken Path
-```bash
-# Update the router file with correct path
-# Old: → `.claude/skills/waramity/init/SKILL.md`
-# New: → `.claude/skills/waramity/setup/init/SKILL.md`
-```
-
-### Fix Name Mismatch
-```bash
-# Option A: Update router to use new name
-# Option B: Update sub-skill frontmatter to use old name
-# Always ask user which option they prefer
-```
-
-### Fix Missing Reference
-```bash
-# Add missing sub-skill to router table
-# Or remove orphan sub-skill if not needed
-```
-
----
-
-## Quick Commands
-
-### Check only (no changes)
-```
-/waramity → "check skills" or "validate skills"
-```
-
-### Check and fix
-```
-/waramity → "fix skill paths" or "update skill references"
-```
-
----
-
-## Expected Output Example
-
-```
-Scanning .claude/skills/waramity/...
-
-=== Issues Found ===
-
-1. BROKEN PATH in waramity/SKILL.md:47
-   - References: .claude/skills/waramity/init/SKILL.md
-   - File not found at this path
-   - Suggestion: Change to .claude/skills/waramity/setup/init/SKILL.md
-
-2. BROKEN PATH in waramity/SKILL.md:48
-   - References: .claude/skills/waramity/update/SKILL.md
-   - File not found at this path
-   - Suggestion: Change to .claude/skills/waramity/setup/sync/SKILL.md
-
-3. NAME MISMATCH in setup/SKILL.md:19
-   - Router calls it: "update"
-   - Sub-skill name: "sync" (from setup/sync/SKILL.md)
-   - Suggestion: Update router or rename folder back to "update"
-
-=== Summary ===
-Files scanned: 18
-Issues found: 3
-
-Update these references? [Y/n/select]
-```
-
----
-
 ## Rules
 
-- Always show full report before making changes
+- Always show full validation report before making changes
 - Never auto-fix without user confirmation
 - Prefer updating routers over renaming folders
 - Keep backup of files before modification
 - Show diff of proposed changes
+- Ask confirmation before any GitHub operation
+- Create README.md if it doesn't exist in the repo
+- Preserve content outside the `<!-- SKILLS-START/END -->` markers
+- Sort skills alphabetically within each category
+
+---
+
+## Expected Output
+
+```
+=== Part 1: Skill Validation ===
+
+Scanning .claude/skills/waramity/...
+
+✓ OK: setup/init/SKILL.md
+✓ OK: setup/update/SKILL.md
+✓ OK: dev/planner/SKILL.md
+✓ OK: dev/doer/SKILL.md
+✗ BROKEN PATH: dev/SKILL.md references "dev/tracker/SKILL.md" (not found)
+  Suggestion: Change to "dev/track/SKILL.md"
+
+Summary: 11/12 valid, 1 issue found
+
+Fix this issue? [Y/n]
+
+=== Part 2: GitHub README Sync ===
+
+Found 12 skills in .claude/skills/waramity/
+
+Category: setup (2 skills)
+  - init: Initialize waramity skills configuration
+  - update: Validate routers and sync to GitHub
+
+Category: dev (6 skills)
+  - doer: Implement planned requirements
+  - fail: Revert and delete failed requirements
+  - planner: Analyze and plan tasks
+  - save-wip: Commit unfinished work
+  - shipper: Commit and push completed work
+  - track: Show uncommitted files
+
+Category: business (1 skill)
+  - gh-remote: GitHub operations without local git
+
+=== Preview README Update ===
+
+[Shows diff of changes]
+
+Push to waramity/waramity-skills? [Y/n]
+```
