@@ -1,6 +1,6 @@
 ---
 name: waramity
-description: Unified requirement workflow skill. Routes to the right sub-skill based on user intent. Utility skills: init, sync, update. Dev skills: planner, doer, save-wip, shipper, fail, track, gh-remote. Business skills: business-plan, app-analysis, keyword-trend, solo-rank, work-breakdown. Trigger on utility phrases like "init waramity", "sync skills", "push skills", "pull skills", "check skills", "validate skills". Trigger on dev phrases like "plan this", "do REQ", "save WIP", "ship REQ", "fail REQ", "track changes". Trigger on business phrases like "business plan", "analyze app", "keyword trend", "solo developer app", "work breakdown", "WBS", "break this down".
+description: Unified requirement workflow skill. Routes to the right sub-skill based on user intent. Utility skills: init, sync, update. Dev skills: planner, doer, save-wip, shipper, fail, track, gh-remote. Business skills: business-plan, app-analysis, keyword-trend, solo-rank, work-breakdown. Design skills: brand-kit, ux-flow, wireframe, ui-mockup, icon-set, ux-copy. Trigger on utility phrases like "init waramity", "sync skills", "push skills", "pull skills", "check skills", "validate skills". Trigger on dev phrases like "plan this", "do REQ", "save WIP", "ship REQ", "fail REQ", "track changes". Trigger on business phrases like "business plan", "analyze app", "keyword trend", "solo developer app", "work breakdown", "WBS", "break this down". Trigger on design phrases like "brand kit", "ux flow", "wireframe", "ui mockup", "icon set", "ux copy", "color palette", "typography".
 ---
 
 # Waramity
@@ -41,6 +41,17 @@ Read the user's message and select **one** sub-skill:
 | Rank solo-dev apps | **solo-rank** | "low risk app", "solo developer app", "passive income app", "minimal cost app", "build alone" |
 | Create work breakdown | **work-breakdown** | "work breakdown", "WBS", "break this down", "split tasks", "divide work", "create prompts", "session prompts", "actionable tasks" |
 
+### Design Skills
+
+| Intent | Sub-skill | Trigger phrases |
+|--------|-----------|-----------------|
+| Define brand identity | **brand-kit** | "brand kit", "define brand", "color palette", "typography", "brand voice", "logo direction" |
+| Map user journeys | **ux-flow** | "ux flow", "user journey", "state diagram", "user flow", "feature flow" |
+| Create low-fi layouts | **wireframe** | "wireframe", "low-fi", "layout sketch", "screen layout", "ASCII mockup" |
+| Design high-fi components | **ui-mockup** | "ui mockup", "high-fi", "component design", "visual design", "styled component" |
+| Create icon pack | **icon-set** | "icon set", "icons", "svg icons", "icon pack", "generate icons" |
+| Write UI text | **ux-copy** | "ux copy", "microcopy", "button text", "error messages", "onboarding text", "empty state" |
+
 Once identified, follow the full workflow from that sub-skill exactly as if it had been invoked directly:
 
 ### Utility Skill Paths
@@ -64,8 +75,17 @@ Once identified, follow the full workflow from that sub-skill exactly as if it h
 - **solo-rank** → `.claude/skills/waramity/business/solo-rank/SKILL.md`
 - **work-breakdown** → `.claude/skills/waramity/business/work-breakdown/SKILL.md`
 
+### Design Skill Paths
+- **brand-kit** → `.claude/skills/waramity/design/brand-kit/SKILL.md`
+- **ux-flow** → `.claude/skills/waramity/design/ux-flow/SKILL.md`
+- **wireframe** → `.claude/skills/waramity/design/wireframe/SKILL.md`
+- **ui-mockup** → `.claude/skills/waramity/design/ui-mockup/SKILL.md`
+- **icon-set** → `.claude/skills/waramity/design/icon-set/SKILL.md`
+- **ux-copy** → `.claude/skills/waramity/design/ux-copy/SKILL.md`
+
 If the intent is ambiguous, ask the user:
 > "Which workflow do you want?
 > - **Utility**: init, sync (push/pull skills), or update (validate references)?
 > - **Dev**: plan, do REQ, save WIP, ship, track, gh-remote, or fail REQ?
-> - **Business**: business plan, app analysis, keyword trend, solo rank, or work breakdown?"
+> - **Business**: business plan, app analysis, keyword trend, solo rank, or work breakdown?
+> - **Design**: brand-kit, ux-flow, wireframe, ui-mockup, icon-set, or ux-copy?"
