@@ -59,7 +59,9 @@ Display a structured commit plan:
 - path/to/file1
 - path/to/file2
 
-### ✏️ Modified Files (N files)  
+
+### ✏️ Modified Files (N files)
+### ✏️ Modified Files (N files)
 - path/to/file3
 - path/to/file4
 
