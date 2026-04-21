@@ -378,7 +378,836 @@ When you need to call a tool, respond with a JSON function call block.
 
 Parse the model output for tool-call JSON, execute locally, and feed results back into the conversation.
 
-### 8. Performance optimization tips
+### 8. Vision Integration (Ask Image)
+
+Since Gemma 4 E2B/E4B are **text-only models**, image understanding requires a two-stage pipeline:
+
+```
+┌─────────┐     ┌─────────────┐     ┌───────────────────┐     ┌───────┐
+│  Image  │ ──▶ │   Vision    │ ──▶ │ Text Description  │ ──▶ │ Gemma │
+│ (Photo) │     │  Framework  │     │  "2 faces, text   │     │  LLM  │
+└─────────┘     └─────────────┘     │   reading Hello"  │     └───────┘
+                                    └───────────────────┘
+```
+
+#### ImageAnalyzer.swift — Vision framework wrapper
+
+```swift
+import Vision
+import UIKit
+
+@MainActor
+final class ImageAnalyzer: ObservableObject {
+    @Published var isAnalyzing = false
+
+    // MARK: - Analyze image with multiple Vision requests
+    func analyzeImage(_ image: UIImage) async -> ImageAnalysisResult {
+        guard let cgImage = image.cgImage else {
+            return ImageAnalysisResult(error: "Failed to get CGImage")
+        }
+
+        isAnalyzing = true
+        defer { isAnalyzing = false }
+
+        var result = ImageAnalysisResult()
+
+        // Run multiple analyses in parallel
+        async let textResult = recognizeText(in: cgImage)
+        async let facesResult = detectFaces(in: cgImage)
+        async let objectsResult = classifyScene(in: cgImage)
+        async let barcodesResult = detectBarcodes(in: cgImage)
+
+        result.recognizedText = await textResult
+        result.detectedFaces = await facesResult
+        result.sceneClassifications = await objectsResult
+        result.detectedBarcodes = await barcodesResult
+
+        return result
+    }
+
+    // MARK: - Text Recognition (OCR)
+    private func recognizeText(in image: CGImage) async -> [String] {
+        await withCheckedContinuation { continuation in
+            let request = VNRecognizeTextRequest { request, error in
+                guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                let texts = observations.compactMap { $0.topCandidates(1).first?.string }
+                continuation.resume(returning: texts)
+            }
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+            try? handler.perform([request])
+        }
+    }
+
+    // MARK: - Face Detection
+    private func detectFaces(in image: CGImage) async -> Int {
+        await withCheckedContinuation { continuation in
+            let request = VNDetectFaceRectanglesRequest { request, error in
+                let count = request.results?.count ?? 0
+                continuation.resume(returning: count)
+            }
+
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+            try? handler.perform([request])
+        }
+    }
+
+    // MARK: - Scene Classification
+    private func classifyScene(in image: CGImage) async -> [String] {
+        await withCheckedContinuation { continuation in
+            let request = VNClassifyImageRequest { request, error in
+                guard let observations = request.results as? [VNClassificationObservation] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                // Get top 5 classifications with confidence > 0.3
+                let labels = observations
+                    .filter { $0.confidence > 0.3 }
+                    .prefix(5)
+                    .map { "\($0.identifier) (\(Int($0.confidence * 100))%)" }
+                continuation.resume(returning: Array(labels))
+            }
+
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+            try? handler.perform([request])
+        }
+    }
+
+    // MARK: - Barcode/QR Detection
+    private func detectBarcodes(in image: CGImage) async -> [String] {
+        await withCheckedContinuation { continuation in
+            let request = VNDetectBarcodesRequest { request, error in
+                guard let observations = request.results as? [VNBarcodeObservation] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                let barcodes = observations.compactMap { observation -> String? in
+                    guard let payload = observation.payloadStringValue else { return nil }
+                    return "\(observation.symbology.rawValue): \(payload)"
+                }
+                continuation.resume(returning: barcodes)
+            }
+
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+            try? handler.perform([request])
+        }
+    }
+}
+```
+
+#### ImageAnalysisResult.swift — Structured result
+
+```swift
+struct ImageAnalysisResult {
+    var recognizedText: [String] = []
+    var detectedFaces: Int = 0
+    var sceneClassifications: [String] = []
+    var detectedBarcodes: [String] = []
+    var error: String?
+
+    /// Convert to natural language description for LLM input
+    func toTextDescription() -> String {
+        var parts: [String] = []
+
+        if !sceneClassifications.isEmpty {
+            parts.append("Scene: \(sceneClassifications.joined(separator: ", "))")
+        }
+
+        if detectedFaces > 0 {
+            let faceWord = detectedFaces == 1 ? "face" : "faces"
+            parts.append("Detected \(detectedFaces) \(faceWord)")
+        }
+
+        if !recognizedText.isEmpty {
+            let textPreview = recognizedText.prefix(10).joined(separator: " ")
+            parts.append("Text in image: \"\(textPreview)\"")
+        }
+
+        if !detectedBarcodes.isEmpty {
+            parts.append("Barcodes: \(detectedBarcodes.joined(separator: ", "))")
+        }
+
+        if parts.isEmpty {
+            return "No significant content detected in the image."
+        }
+
+        return parts.joined(separator: ". ") + "."
+    }
+}
+```
+
+#### Integration with LLMEngine
+
+```swift
+extension LLMEngine {
+    /// Generate response about an image using Vision analysis
+    func askAboutImage(_ image: UIImage, question: String, analyzer: ImageAnalyzer) -> AsyncStream<String> {
+        AsyncStream { continuation in
+            Task {
+                // Step 1: Analyze image with Vision
+                let analysis = await analyzer.analyzeImage(image)
+                let imageDescription = analysis.toTextDescription()
+
+                // Step 2: Build prompt with image context
+                let prompt = """
+                [Image Analysis]
+                \(imageDescription)
+
+                [User Question]
+                \(question)
+
+                Based on the image analysis above, please answer the user's question.
+                """
+
+                // Step 3: Generate response with Gemma
+                for await chunk in self.generate(prompt: prompt) {
+                    continuation.yield(chunk)
+                }
+                continuation.finish()
+            }
+        }
+    }
+}
+```
+
+#### ChatView extension with image picker
+
+```swift
+import PhotosUI
+
+extension ChatView {
+    // Add to ChatView state:
+    // @State private var selectedPhoto: PhotosPickerItem?
+    // @State private var selectedImage: UIImage?
+    // @StateObject private var imageAnalyzer = ImageAnalyzer()
+
+    var imagePickerButton: some View {
+        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+            Image(systemName: "photo.on.rectangle")
+                .font(.title2)
+        }
+        .onChange(of: selectedPhoto) { newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    selectedImage = image
+                }
+            }
+        }
+    }
+
+    func sendImageMessage(question: String) {
+        guard let image = selectedImage else { return }
+
+        messages.append((role: "user", text: "[Image attached] \(question)"))
+        streamedResponse = ""
+
+        Task {
+            for await chunk in engine.askAboutImage(image, question: question, analyzer: imageAnalyzer) {
+                streamedResponse += chunk
+            }
+            messages.append((role: "assistant", text: streamedResponse))
+            streamedResponse = ""
+            selectedImage = nil
+        }
+    }
+}
+```
+
+#### Memory considerations
+
+Running Vision analysis and LLM inference simultaneously can strain device memory:
+
+| Configuration | Peak RAM | Recommendation |
+|---|---|---|
+| Vision only | ~200 MB | Safe on all devices |
+| E2B + Vision | ~1.7 GB | OK on iPhone 12+ |
+| E4B + Vision | ~2.7 GB | Requires 6GB+ RAM |
+
+**Best practices:**
+1. Release Vision request handlers after use
+2. Resize large images before analysis (max 2048px recommended)
+3. Run Vision analysis sequentially with LLM, not in parallel
+4. Monitor memory with `MemoryMonitor` and reduce context if needed
+
+### 9. Audio Scribe (Speech-to-Text)
+
+Voice input follows a similar pattern — transcribe speech to text, then send to Gemma:
+
+```
+┌─────────────┐     ┌─────────────┐     ┌──────────┐     ┌───────┐
+│ Microphone  │ ──▶ │   Speech    │ ──▶ │   Text   │ ──▶ │ Gemma │
+│   Audio     │     │  Framework  │     │ "Hello"  │     │  LLM  │
+└─────────────┘     └─────────────┘     └──────────┘     └───────┘
+```
+
+#### Info.plist requirements
+
+```xml
+<!-- Required for microphone access -->
+<key>NSMicrophoneUsageDescription</key>
+<string>This app uses the microphone for voice input to the AI assistant.</string>
+
+<!-- Required for speech recognition -->
+<key>NSSpeechRecognitionUsageDescription</key>
+<string>This app uses speech recognition to convert your voice to text.</string>
+```
+
+#### AudioTranscriber.swift — Speech framework wrapper
+
+```swift
+import Speech
+import AVFoundation
+
+@MainActor
+final class AudioTranscriber: ObservableObject {
+    @Published var isRecording = false
+    @Published var isAuthorized = false
+    @Published var transcribedText = ""
+    @Published var error: String?
+
+    private var recognizer: SFSpeechRecognizer?
+    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    private var recognitionTask: SFSpeechRecognitionTask?
+    private let audioEngine = AVAudioEngine()
+
+    init() {
+        recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    }
+
+    // MARK: - Request authorization
+    func requestAuthorization() async {
+        let speechStatus = await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status)
+            }
+        }
+
+        let audioStatus = await AVAudioApplication.requestRecordPermission()
+
+        isAuthorized = speechStatus == .authorized && audioStatus
+    }
+
+    // MARK: - Start live transcription
+    func startRecording() throws {
+        // Cancel any existing task
+        recognitionTask?.cancel()
+        recognitionTask = nil
+
+        // Configure audio session
+        let audioSession = AVAudioSession.sharedInstance()
+        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+
+        // Create recognition request
+        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        guard let recognitionRequest = recognitionRequest else {
+            throw TranscriberError.requestCreationFailed
+        }
+
+        // Enable on-device recognition if available (iOS 13+)
+        if recognizer?.supportsOnDeviceRecognition == true {
+            recognitionRequest.requiresOnDeviceRecognition = true
+        }
+
+        recognitionRequest.shouldReportPartialResults = true
+
+        // Set up recognition task
+        recognitionTask = recognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+            Task { @MainActor in
+                if let result = result {
+                    self?.transcribedText = result.bestTranscription.formattedString
+                }
+                if error != nil || result?.isFinal == true {
+                    self?.stopRecording()
+                }
+            }
+        }
+
+        // Configure audio input
+        let inputNode = audioEngine.inputNode
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            self.recognitionRequest?.append(buffer)
+        }
+
+        audioEngine.prepare()
+        try audioEngine.start()
+
+        isRecording = true
+    }
+
+    // MARK: - Stop recording
+    func stopRecording() {
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask = nil
+        isRecording = false
+    }
+
+    // MARK: - Transcribe audio file
+    func transcribeFile(at url: URL) async throws -> String {
+        guard let recognizer = recognizer, recognizer.isAvailable else {
+            throw TranscriberError.recognizerUnavailable
+        }
+
+        let request = SFSpeechURLRecognitionRequest(url: url)
+        request.shouldReportPartialResults = false
+
+        // Use on-device if available
+        if recognizer.supportsOnDeviceRecognition {
+            request.requiresOnDeviceRecognition = true
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            recognizer.recognitionTask(with: request) { result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let result = result, result.isFinal {
+                    continuation.resume(returning: result.bestTranscription.formattedString)
+                }
+            }
+        }
+    }
+}
+
+enum TranscriberError: Error {
+    case requestCreationFailed
+    case recognizerUnavailable
+}
+```
+
+#### ChatView extension with microphone button
+
+```swift
+extension ChatView {
+    // Add to ChatView state:
+    // @StateObject private var transcriber = AudioTranscriber()
+
+    var microphoneButton: some View {
+        Button(action: toggleRecording) {
+            Image(systemName: transcriber.isRecording ? "mic.fill" : "mic")
+                .font(.title2)
+                .foregroundColor(transcriber.isRecording ? .red : .primary)
+        }
+        .disabled(!transcriber.isAuthorized)
+        .onAppear {
+            Task { await transcriber.requestAuthorization() }
+        }
+    }
+
+    private func toggleRecording() {
+        if transcriber.isRecording {
+            transcriber.stopRecording()
+            // Use transcribed text as input
+            if !transcriber.transcribedText.isEmpty {
+                input = transcriber.transcribedText
+                transcriber.transcribedText = ""
+            }
+        } else {
+            try? transcriber.startRecording()
+        }
+    }
+}
+```
+
+#### On-device vs server recognition
+
+| Mode | Availability | Duration limit | Quality |
+|---|---|---|---|
+| On-device | iOS 13+ (select languages) | Unlimited | Good |
+| Server | iOS 10+ (all languages) | 60 seconds | Excellent |
+
+**Recommendation:** Use on-device recognition when available for:
+- Privacy (audio stays on device)
+- Offline capability
+- No duration limits
+- Lower latency
+
+Check availability with:
+```swift
+if recognizer?.supportsOnDeviceRecognition == true {
+    request.requiresOnDeviceRecognition = true
+}
+```
+
+#### Continuous dictation with auto-send
+
+```swift
+extension AudioTranscriber {
+    /// Start continuous dictation that auto-sends after silence
+    func startContinuousDictation(
+        silenceThreshold: TimeInterval = 2.0,
+        onSentence: @escaping (String) -> Void
+    ) throws {
+        var lastSpeechTime = Date()
+        var pendingText = ""
+
+        // ... (similar setup as startRecording)
+
+        recognitionTask = recognizer?.recognitionTask(with: recognitionRequest!) { [weak self] result, error in
+            Task { @MainActor in
+                guard let result = result else { return }
+
+                let newText = result.bestTranscription.formattedString
+                if newText != pendingText {
+                    pendingText = newText
+                    lastSpeechTime = Date()
+                }
+
+                // Check for silence timeout
+                if Date().timeIntervalSince(lastSpeechTime) > silenceThreshold {
+                    if !pendingText.isEmpty {
+                        onSentence(pendingText)
+                        pendingText = ""
+                        self?.transcribedText = ""
+                    }
+                }
+            }
+        }
+        // ... rest of setup
+    }
+}
+```
+
+### 10. Multimodal Chat Example
+
+Combine text, image, and voice inputs in a unified chat interface:
+
+#### Updated project structure
+
+```
+GemmaChat/
+├── Sources/
+│   ├── App/
+│   │   └── GemmaChatApp.swift
+│   ├── Models/
+│   │   ├── LLMEngine.swift            # Core LLM wrapper
+│   │   ├── ConversationManager.swift
+│   │   ├── ModelDownloader.swift
+│   │   ├── ImageAnalyzer.swift        # NEW: Vision wrapper
+│   │   ├── ImageAnalysisResult.swift  # NEW: Vision results
+│   │   └── AudioTranscriber.swift     # NEW: Speech wrapper
+│   ├── Views/
+│   │   ├── ChatView.swift
+│   │   ├── MessageBubble.swift
+│   │   ├── MultimodalChatView.swift   # NEW: Combined interface
+│   │   ├── ModelPickerView.swift
+│   │   └── SettingsView.swift
+│   └── Utilities/
+│       ├── TokenCounter.swift
+│       └── MemoryMonitor.swift
+└── Resources/
+    └── Assets.xcassets
+```
+
+#### MultimodalChatView.swift — Complete example
+
+```swift
+import SwiftUI
+import PhotosUI
+
+struct MultimodalChatView: View {
+    @StateObject private var engine = LLMEngine()
+    @StateObject private var downloader = ModelDownloader()
+    @StateObject private var imageAnalyzer = ImageAnalyzer()
+    @StateObject private var transcriber = AudioTranscriber()
+
+    @State private var messages: [ChatMessage] = []
+    @State private var input = ""
+    @State private var streamedResponse = ""
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedImage: UIImage?
+    @State private var showImagePreview = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Chat messages
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(messages) { message in
+                                MessageRow(message: message)
+                            }
+                            if !streamedResponse.isEmpty {
+                                MessageRow(message: ChatMessage(
+                                    role: .assistant,
+                                    content: streamedResponse
+                                ))
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: messages.count) { _ in
+                        if let lastId = messages.last?.id {
+                            proxy.scrollTo(lastId, anchor: .bottom)
+                        }
+                    }
+                }
+
+                // Image preview (if selected)
+                if let image = selectedImage {
+                    imagePreviewBar(image: image)
+                }
+
+                // Input bar
+                inputBar
+            }
+            .navigationTitle("Gemma 4 Chat")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button("New Chat") { resetConversation() }
+                        Button("Settings") { /* show settings */ }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+        }
+        .task {
+            await transcriber.requestAuthorization()
+        }
+    }
+
+    // MARK: - Image preview bar
+    private func imagePreviewBar(image: UIImage) -> some View {
+        HStack {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 60)
+                .cornerRadius(8)
+
+            VStack(alignment: .leading) {
+                Text("Image attached")
+                    .font(.caption.bold())
+                Text("Ask a question about this image")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            Button(action: { selectedImage = nil }) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
+    }
+
+    // MARK: - Input bar
+    private var inputBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+
+            HStack(spacing: 12) {
+                // Photo picker
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    Image(systemName: "photo")
+                        .font(.title2)
+                }
+                .onChange(of: selectedPhoto) { newItem in
+                    loadImage(from: newItem)
+                }
+
+                // Microphone button
+                Button(action: toggleRecording) {
+                    Image(systemName: transcriber.isRecording ? "mic.fill" : "mic")
+                        .font(.title2)
+                        .foregroundColor(transcriber.isRecording ? .red : .primary)
+                }
+                .disabled(!transcriber.isAuthorized)
+
+                // Text field
+                TextField("Message", text: $input, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...5)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(20)
+
+                // Send button
+                Button(action: sendMessage) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title)
+                }
+                .disabled(input.isEmpty && selectedImage == nil || engine.isGenerating)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+
+            // Recording indicator
+            if transcriber.isRecording {
+                HStack {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                    Text("Listening... \(transcriber.transcribedText)")
+                        .font(.caption)
+                        .lineLimit(1)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            }
+        }
+    }
+
+    // MARK: - Actions
+    private func loadImage(from item: PhotosPickerItem?) {
+        Task {
+            if let data = try? await item?.loadTransferable(type: Data.self),
+               let image = UIImage(data: data) {
+                // Resize if needed (max 2048px for memory efficiency)
+                selectedImage = image.resized(maxDimension: 2048)
+            }
+        }
+    }
+
+    private func toggleRecording() {
+        if transcriber.isRecording {
+            transcriber.stopRecording()
+            if !transcriber.transcribedText.isEmpty {
+                input = transcriber.transcribedText
+                transcriber.transcribedText = ""
+            }
+        } else {
+            try? transcriber.startRecording()
+        }
+    }
+
+    private func sendMessage() {
+        let userText = input
+        let userImage = selectedImage
+        input = ""
+        selectedImage = nil
+        selectedPhoto = nil
+
+        // Create user message
+        var content = userText
+        if userImage != nil {
+            content = "[Image attached] " + content
+        }
+        messages.append(ChatMessage(role: .user, content: content, image: userImage))
+        streamedResponse = ""
+
+        Task {
+            if let image = userImage {
+                // Image + text: Use Vision analysis
+                for await chunk in engine.askAboutImage(image, question: userText, analyzer: imageAnalyzer) {
+                    streamedResponse += chunk
+                }
+            } else {
+                // Text only
+                for await chunk in engine.generate(prompt: userText) {
+                    streamedResponse += chunk
+                }
+            }
+
+            messages.append(ChatMessage(role: .assistant, content: streamedResponse))
+            streamedResponse = ""
+        }
+    }
+
+    private func resetConversation() {
+        messages.removeAll()
+        engine.resetConversation()
+    }
+}
+
+// MARK: - Supporting types
+
+struct ChatMessage: Identifiable {
+    let id = UUID()
+    let role: Role
+    let content: String
+    var image: UIImage?
+
+    enum Role {
+        case user, assistant
+    }
+}
+
+struct MessageRow: View {
+    let message: ChatMessage
+
+    var body: some View {
+        HStack {
+            if message.role == .user { Spacer() }
+
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
+                if let image = message.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: 200, maxHeight: 200)
+                        .cornerRadius(12)
+                }
+
+                Text(message.content)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(message.role == .user ? Color.blue : Color(.systemGray5))
+                    .foregroundColor(message.role == .user ? .white : .primary)
+                    .cornerRadius(20)
+            }
+            .frame(maxWidth: 280, alignment: message.role == .user ? .trailing : .leading)
+
+            if message.role == .assistant { Spacer() }
+        }
+    }
+}
+
+// MARK: - UIImage extension for resizing
+
+extension UIImage {
+    func resized(maxDimension: CGFloat) -> UIImage {
+        let ratio = min(maxDimension / size.width, maxDimension / size.height)
+        if ratio >= 1 { return self }
+
+        let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: newSize))
+        }
+    }
+}
+```
+
+#### Memory budget for multimodal
+
+Running all three input modalities requires careful memory management:
+
+| Component | Typical RAM |
+|---|---|
+| Gemma E2B loaded | ~1.5 GB |
+| Gemma E4B loaded | ~2.5 GB |
+| Vision analysis (active) | ~200 MB |
+| Speech recognition (active) | ~50 MB |
+| **Total (E2B + Vision + Speech)** | **~1.75 GB** |
+| **Total (E4B + Vision + Speech)** | **~2.75 GB** |
+
+**Memory management tips:**
+1. Only run Vision analysis when user sends an image (not continuously)
+2. Stop audio engine when not actively recording
+3. Release Vision handlers after each analysis completes
+4. Monitor with `MemoryMonitor` and show warnings if RAM exceeds threshold
+
+### 11. Performance optimization tips
 
 1. **Use CPU with XNNPACK** — LiteRT-LM uses XNNPACK by default for CPU acceleration with 4 threads.
 2. **Metal GPU** — On supported devices, LiteRT-LM can use Metal for GPU acceleration. This is automatic when available.
@@ -387,11 +1216,11 @@ Parse the model output for tool-call JSON, execute locally, and feed results bac
 5. **Embedding memory-mapping** — LiteRT-LM memory-maps embedding parameters so only the fraction needed per inference is loaded into RAM.
 6. **Thermal management** — Sustained inference heats mobile devices. Monitor thermals and consider throttling generation speed or adding cooldown pauses for long sessions.
 
-### 9. Testing with AI Edge Gallery
+### 12. Testing with AI Edge Gallery
 
 For quick prototyping without writing code, users can install the **Google AI Edge Gallery** app on iOS from the App Store. It runs Gemma 4 models locally using the same LiteRT-LM runtime.
 
-### 10. Deployment checklist
+### 13. Deployment checklist
 
 - [ ] Xcode 15+ with Swift 5.9+
 - [ ] iOS 16+ deployment target
