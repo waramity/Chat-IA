@@ -40,8 +40,6 @@ Ask the user **3 focused questions** using the `ask_user_input_v0` tool:
 - `"Fix the bug I just described"`
 - `"Continue implementing the feature"`
 
-Follow `agent-skills:git-workflow-and-versioning` for branch naming and WIP commit conventions throughout this workflow.
-
 ### Step 3: Handle Branch
 
 **If same branch:** continue — no branch change needed.
@@ -84,14 +82,17 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 2. If push fails due to upstream changes: `rtk git pull --rebase` then `rtk git push`
 3. Capture the commit hash: `git rev-parse --short HEAD`
 
-### Step 5b: Update REQ Status (if applicable)
+### Step 5b: Update REQ Status and Capture Path
 
 If the WIP work is tied to a REQ file in `.waramity/requirement/`:
 
 1. Find the relevant REQ file (by matching the work description or files changed)
-2. If found and status is `🟡 Planned`, update it to `🚧 WIP`
+2. Capture the relative path from `.waramity/wip/` — e.g., `../requirement/0010-fix-ball-bounce-skip-frame.md`
+3. If found and status is `🟡 Planned`, update it to `🚧 WIP`
 
 This keeps the requirement status honest — the work has started but is not yet finished.
+
+**Capture the REQ path for use in Step 6:** store it in variable `{REQ-PATH}` (e.g., `../requirement/0010-fix-ball-bounce-skip-frame.md`). If no REQ was found, leave `{REQ-PATH}` empty — the field will be omitted from the WIP file.
 
 ### Step 6: Record in .waramity/wip/
 

@@ -11,19 +11,15 @@ After a requirement has been implemented and marked `⏳ Wait to Review`, this s
 
 ### Step 1: Identify the Requirement
 
-1. List `.waramity/requirement/` to see all REQ files
+1. List `.waramity/requirement/` to see all REQ files (filenames show status emoji: 🟡 Planned, 🚧 WIP, ⏳ Wait to Review, ✅ Done)
 2. Find the target file by:
-   - Explicit REQ number from user (e.g. "REQ-0001" → file starting with `0001-`)
+   - Explicit REQ number from user (e.g. "REQ-0001" → file with `0001-` in name)
    - User's selection or description matching a filename title
    - If only one REQ file has status `✅ Done`, use that one
    - If ambiguous, show the list and ask the user which REQ to ship
 3. Read the matched individual file
 4. Confirm the REQ has status `⏳ Wait to Review` — if still `🟡 Planned`, tell the user to implement it first and stop
 5. Save the REQ title, description, and filename for the commit message
-
-### Step 1b: Pre-Ship Review
-
-Before committing, invoke `agent-skills:code-review-and-quality` if it was not already run during the doer step. Do not skip this for any REQ that modifies shared logic.
 
 ### Step 2: Stage and Commit
 
@@ -52,10 +48,11 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Step 3: Remove the REQ File
 
-Delete the individual REQ file:
+Find and delete the REQ file by REQ number (avoids emoji/spacing mismatches):
 
 ```bash
-rm .waramity/requirement/{NNNN}-{slug}.md
+REQ_FILE=$(ls ".waramity/requirement/"*{NNNN}*.md 2>/dev/null | head -1)
+rm "$REQ_FILE"
 ```
 
 Stage and commit the deletion:
@@ -66,14 +63,8 @@ Remove completed REQ-{NNNN} from requirement plan
 
 ### Step 4: Push
 
-Follow `agent-skills:git-workflow-and-versioning` for the push — ensure the commit is atomic and the message is clean.
-
 1. Push to remote: `rtk git push`
 2. If push fails due to upstream changes, run `rtk git pull --rebase` then `rtk git push`
-
-### Step 4b: Post-Push (production-impacting REQs only)
-
-If the REQ changes logic visible to live users (rendering, scoring, game rules), invoke `agent-skills:shipping-and-launch` for a pre-launch checklist and rollback plan.
 
 ### Step 5: Report
 

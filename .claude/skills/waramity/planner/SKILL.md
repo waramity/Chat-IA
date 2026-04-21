@@ -7,10 +7,6 @@ description: Analyze code or a coding task, clarify requirements interactively, 
 
 When the user provides code, a task, or a requirement — analyze it, clarify what's actually needed, and produce a structured plan. Do NOT start coding.
 
-## Pre-Step: Idea Refinement (if vague)
-
-If the user's input is a rough idea with no clear scope or goal, invoke `agent-skills:idea-refine` first to sharpen the concept before proceeding. Skip this if the task is already specific.
-
 ## Workflow
 
 ### Step 1: Analyze the Input
@@ -67,6 +63,12 @@ After the user answers (or accepts defaults), produce the full plan with these s
 | {question 1} | {chosen option} |
 | {question 2} | {chosen option} |
 
+### Implementation Plan
+1. {Step 1 — specific file or function to touch and what to change}
+2. {Step 2}
+3. {Step 3}
+{Add or remove steps as needed — be concrete, not vague}
+
 ### Difficulty
 
 **Level:** {1 / 2 / 3 / 4 / 5} — {label}
@@ -101,10 +103,6 @@ After the user answers (or accepts defaults), produce the full plan with these s
 - Performance sensitive: change affects render loop, frame rate, or real-time logic
 - State complexity: interacts with multiple stateful systems simultaneously
 - Test coverage gap: area has no tests — manual verification required
-
-### Step 3b: Break Down Tasks (optional)
-
-After writing the plan, if the REQ has 3+ acceptance criteria or complex dependencies, invoke `agent-skills:planning-and-task-breakdown` to decompose the criteria into ordered, atomic subtasks. Add the output as a **Tasks** section in the plan before saving.
 
 ### Step 4: Save to File
 
