@@ -2,9 +2,11 @@
 name: setup
 description: >
   Setup and maintenance utilities for waramity skills.
-  Routes to: init (project setup), sync (sync with remote), update (validate references).
+  Routes to: init (project setup), sync (sync with remote), update (validate references),
+  connect (link waramity skills to external skills).
   Triggers on: "setup waramity", "init project", "sync skills", "pull skills", "push skills",
-  "check skills", "validate skills", "fix skill paths", "initialize waramity".
+  "check skills", "validate skills", "fix skill paths", "initialize waramity",
+  "connect skill", "link skill", "integrate skill".
 ---
 
 # Skill: setup
@@ -18,6 +20,7 @@ Router for waramity setup and maintenance operations.
 | **init** | Initialize `.waramity/dev/` folder in project | "init waramity", "setup project", "initialize" |
 | **sync** | Sync skills with GitHub remote | "sync skills", "pull skills", "push skills", "upload to github", "download skills" |
 | **update** | Validate and fix skill references | "check skills", "validate skills", "fix skill paths", "skill integrity", "update references" |
+| **connect** | Link waramity skills to external skills | "connect skill", "link skill", "integrate skill", "connect to", "link waramity to" |
 
 ---
 
@@ -41,6 +44,12 @@ Router for waramity setup and maintenance operations.
 - User mentions "check skills", "validate", "fix paths"
 - User wants to find broken references in routers
 - User asks "what needs updating" in skill files
+
+### Route to `connect` when:
+- User wants to link a waramity skill to an external skill
+- User mentions "connect", "link", "integrate" with skill references
+- User wants to create cross-skill documentation
+- User mentions external skill paths (e.g., "ui-ux-pro-max")
 
 ---
 
@@ -71,10 +80,22 @@ Creates:
 /waramity → "fix skill paths"    # Show and offer to fix
 ```
 
+### Connect to external skills
+```
+/waramity → "connect design to ui-ux-pro-max"
+```
+Creates:
+```
+.waramity/
+└── memory/
+    └── connected-skills/
+        └── design--ui-ux-pro-max.md
+```
+
 ---
 
 ## Rules
 
 - Always route to the appropriate sub-skill based on user intent
-- If unclear, ask: "Do you want to (1) initialize a project, (2) sync skills with GitHub, or (3) check/fix skill references?"
+- If unclear, ask: "Do you want to (1) initialize a project, (2) sync skills with GitHub, (3) check/fix skill references, or (4) connect to an external skill?"
 - Never perform multiple operations without explicit user request

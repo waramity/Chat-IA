@@ -1,6 +1,6 @@
 ---
 name: waramity
-description: Unified requirement workflow skill. Routes to the right sub-skill based on user intent. Utility skills: init, sync, update. Dev skills: planner, doer, save-wip, shipper, fail, track, gh-remote. Business skills: business-plan, app-analysis, keyword-trend, solo-rank, work-breakdown. Design skills: brand-kit, ux-flow, wireframe, ui-mockup, icon-set, ux-copy. Trigger on utility phrases like "init waramity", "sync skills", "push skills", "pull skills", "check skills", "validate skills". Trigger on dev phrases like "plan this", "do REQ", "save WIP", "ship REQ", "fail REQ", "track changes". Trigger on business phrases like "business plan", "analyze app", "keyword trend", "solo developer app", "work breakdown", "WBS", "break this down". Trigger on design phrases like "brand kit", "ux flow", "wireframe", "ui mockup", "icon set", "ux copy", "color palette", "typography".
+description: Unified requirement workflow skill. Routes to the right sub-skill based on user intent. Utility skills: init, sync, update, connect. Dev skills: planner, doer, save-wip, shipper, fail, track, gh-remote. Business skills: business-plan, app-analysis, keyword-trend, solo-rank, work-breakdown. Design skills: brand-kit, ux-flow, wireframe, ui-mockup, icon-set, ux-copy. Trigger on utility phrases like "init waramity", "sync skills", "push skills", "pull skills", "check skills", "validate skills", "connect skill", "link skill", "integrate skill". Trigger on dev phrases like "plan this", "do REQ", "save WIP", "ship REQ", "fail REQ", "track changes". Trigger on business phrases like "business plan", "analyze app", "keyword trend", "solo developer app", "work breakdown", "WBS", "break this down". Trigger on design phrases like "brand kit", "ux flow", "wireframe", "ui mockup", "icon set", "ux copy", "color palette", "typography".
 ---
 
 # Waramity
@@ -18,6 +18,7 @@ Read the user's message and select **one** sub-skill:
 | Initialize project | **init** | "init waramity", "setup waramity", "initialize .waramity", "setup project" |
 | Sync skills local/remote | **sync** | "sync skills", "push skills", "pull skills", "sync waramity", "upload skills to github", "download latest skills", "push local to remote", "pull remote to local" |
 | Validate skill references | **update** | "check skills", "validate skills", "fix skill paths", "skill integrity", "update references" |
+| Connect to external skills | **connect** | "connect skill", "link skill", "integrate skill", "connect to", "link waramity to", "connect design to ui-ux-pro-max" |
 
 ### Dev Skills
 
@@ -58,6 +59,7 @@ Once identified, follow the full workflow from that sub-skill exactly as if it h
 - **init** → `.claude/skills/waramity/setup/init/SKILL.md`
 - **sync** → `.claude/skills/waramity/setup/sync/SKILL.md`
 - **update** → `.claude/skills/waramity/setup/update/SKILL.md`
+- **connect** → `.claude/skills/waramity/setup/connect/SKILL.md`
 
 ### Dev Skill Paths
 - **planner** → `.claude/skills/waramity/dev/planner/SKILL.md`
@@ -85,7 +87,7 @@ Once identified, follow the full workflow from that sub-skill exactly as if it h
 
 If the intent is ambiguous, ask the user:
 > "Which workflow do you want?
-> - **Utility**: init, sync (push/pull skills), or update (validate references)?
+> - **Utility**: init, sync (push/pull skills), update (validate references), or connect (link external skills)?
 > - **Dev**: plan, do REQ, save WIP, ship, track, gh-remote, or fail REQ?
 > - **Business**: business plan, app analysis, keyword trend, solo rank, or work breakdown?
 > - **Design**: brand-kit, ux-flow, wireframe, ui-mockup, icon-set, or ux-copy?"
