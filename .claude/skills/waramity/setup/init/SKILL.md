@@ -47,27 +47,7 @@ Confirm success: "`.waramity/` structure created with `business/`, `design/`, an
 
 ---
 
-### Step 3: Download Karpathy-Style CLAUDE.md Guidelines
-
-Download the Andrej Karpathy coding guidelines to the project's `.claude/CLAUDE.md`:
-
-```bash
-mkdir -p .claude
-gh api repos/forrestchang/andrej-karpathy-skills/contents/CLAUDE.md -q .content \
-  | base64 -d > .claude/CLAUDE.md \
-  && echo "Downloaded: .claude/CLAUDE.md (Karpathy guidelines)" \
-  || echo "Failed to download CLAUDE.md"
-```
-
-This provides 4 core principles:
-1. **Think Before Coding** - Surface assumptions and tradeoffs
-2. **Simplicity First** - Minimum code, nothing speculative
-3. **Surgical Changes** - Only necessary edits, no cosmetic improvements
-4. **Goal-Driven Execution** - Define success criteria, loop until verified
-
----
-
-### Step 4: Pull Latest Skill Version (Optional)
+### Step 3: Pull Latest Skill Version (Optional)
 
 Ask the user:
 > "Do you also want to pull the latest waramity skill from `waramity/waramity-skills`? This will update your local `~/.claude/skills/waramity/` files."
@@ -104,7 +84,7 @@ Confirm: "Waramity skill updated to latest version from `waramity/waramity-skill
 
 ---
 
-### Step 5: Present Summary
+### Step 4: Present Summary
 
 After completing, show:
 
@@ -117,14 +97,12 @@ Initialization complete:
     OK .waramity/dev/requirement/  -- store planned REQ files here
     OK .waramity/dev/wip/          -- store WIP checkpoints here
 
-  Guidelines:
-    OK .claude/CLAUDE.md           -- Karpathy-style coding principles
-
   Next steps:
-    - Plan a task:  /waramity  -> "plan this: <description>"
-    - Do a REQ:     /waramity  -> "do REQ-NNNN"
-    - Save WIP:     /waramity  -> "save my progress"
-    - Ship a REQ:   /waramity  -> "ship REQ-NNNN"
+    - Install skills: /waramity -> "list skills" (browse available skills)
+    - Plan a task:    /waramity -> "plan this: <description>"
+    - Do a REQ:       /waramity -> "do REQ-NNNN"
+    - Save WIP:       /waramity -> "save my progress"
+    - Ship a REQ:     /waramity -> "ship REQ-NNNN"
 ```
 
 ---
