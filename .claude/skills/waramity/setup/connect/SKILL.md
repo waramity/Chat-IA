@@ -2,7 +2,7 @@
 name: connect
 description: >
   Connect waramity skills to external skills for cross-referencing.
-  Creates connection mappings in .waramity/memory/connected-skills/.
+  Creates connection mappings in .waramity/memory/connected-skill/.
   Triggers on: "connect skill", "link skill", "integrate skill", "connect to",
   "link waramity to", "use external skill", "connect design to ui-ux-pro-max".
 ---
@@ -72,14 +72,14 @@ Determine connection type:
 ### Step 4: Create Connection Directory
 
 ```bash
-mkdir -p .waramity/memory/connected-skills
+mkdir -p .waramity/memory/connected-skill
 ```
 
 ---
 
 ### Step 5: Create Connection File
 
-Create file: `.waramity/memory/connected-skills/{waramity-skill}--{external-skill}.md`
+Create file: `.waramity/memory/connected-skill/{waramity-skill}--{external-skill}.md`
 
 **File naming convention:**
 - Use skill names only (not full paths)
@@ -161,7 +161,7 @@ Output summary:
 ```
 Connection created!
 
-File: .waramity/memory/connected-skills/{waramity-skill}--{external-skill}.md
+File: .waramity/memory/connected-skill/{waramity-skill}--{external-skill}.md
 
 {waramity-skill} → {external-skill}
 Type: {connection type}
@@ -185,7 +185,7 @@ Integration points:
 - design/ui-mockup → ui-ux-pro-max styles/stacks
 - design/ux-flow → ui-ux-pro-max ux-guidelines
 
-**Output File**: `.waramity/memory/connected-skills/design--ui-ux-pro-max.md`
+**Output File**: `.waramity/memory/connected-skill/design--ui-ux-pro-max.md`
 
 **Connection Type**: Extension (ui-ux-pro-max extends design with rich database)
 
@@ -211,15 +211,15 @@ Integration points:
 
 ### List existing connections
 ```bash
-ls -la .waramity/memory/connected-skills/
+ls -la .waramity/memory/connected-skill/
 ```
 
 ### Read a connection
 ```bash
-cat .waramity/memory/connected-skills/design--ui-ux-pro-max.md
+cat .waramity/memory/connected-skill/design--ui-ux-pro-max.md
 ```
 
 ### Remove a connection
 ```bash
-rm .waramity/memory/connected-skills/design--ui-ux-pro-max.md
+rm .waramity/memory/connected-skill/design--ui-ux-pro-max.md
 ```
