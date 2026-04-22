@@ -190,7 +190,7 @@ Default to **Single File with Checklist**.
 
 ## Step 7 — Save & Present
 
-Save to: `[project-root]/.waramity/wbs/[project-name]-wbs.md`
+Save to: `.waramity/business/wbs/[project-name]-wbs.md`
 
 Or if user specifies output location, use that.
 

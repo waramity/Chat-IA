@@ -1,10 +1,10 @@
 ---
 name: update
 description: >
-  Validate skill routers and sync to waramity-skills GitHub README.md.
-  Checks broken paths, outdated names, mismatched connections, then updates README.
-  Triggers on: "check skills", "validate skills", "fix skill paths",
-  "update skills readme", "sync skills to github", "push skills list".
+  Validate skill routers, output paths, and sync to waramity-skills GitHub README.md.
+  Checks broken paths, outdated names, mismatched connections, and output directory mismatches.
+  Triggers on: "check skills", "validate skills", "fix skill paths", "check output paths",
+  "validate outputs", "update skills readme", "sync skills to github", "push skills list".
 ---
 
 # Skill: update
@@ -107,6 +107,115 @@ When user approves fixes:
 # Option B: Update sub-skill frontmatter to use old name
 # Always ask user which option they prefer
 ```
+
+---
+
+## Part 1b: Validate Output Paths
+
+Ensure all skills save outputs to the correct `.waramity/` subdirectory based on their category.
+
+### Expected Output Directories
+
+| Category | Expected Output Path |
+|----------|---------------------|
+| `business/**` | `.waramity/business/` |
+| `design/**` | `.waramity/design/` |
+| `dev/**` | `.waramity/dev/` |
+
+### Step 1: Scan for Output Path Patterns
+
+Search each SKILL.md for output path references:
+
+```bash
+LOCAL_BASE=".claude/skills/waramity"
+
+# Patterns that indicate output paths
+# - mkdir -p .waramity/...
+# - Save to: `.waramity/...` or `[path]/.waramity/...`
+# - File: .waramity/...
+# - # File: .waramity/...
+
+for category in business design dev; do
+  echo "=== Checking $category skills ==="
+  find "$LOCAL_BASE/$category" -name "SKILL.md" -type f | while read file; do
+    # Extract output path patterns
+    grep -nE "(mkdir -p|Save to:|# File:|\| File \|).*\.waramity" "$file" 2>/dev/null
+  done
+done
+```
+
+### Step 2: Validate Path Matches Category
+
+For each output path found, verify it matches the skill's category:
+
+```
+Skill: business/work-breakdown/SKILL.md
+Found: mkdir -p .waramity/wbs/
+Expected: .waramity/business/
+Result: ❌ MISMATCH
+
+Skill: dev/save-wip/SKILL.md
+Found: mkdir -p .waramity/dev/wip
+Expected: .waramity/dev/
+Result: ✅ OK
+```
+
+### Step 3: Generate Output Path Report
+
+```
+=== Output Path Validation ===
+
+❌ WRONG DIRECTORY
+  Skill: business/work-breakdown/SKILL.md:193
+  Found: .waramity/wbs/
+  Expected: .waramity/business/wbs/
+  Fix: Update path to include category subdirectory
+
+❌ WRONG DIRECTORY
+  Skill: dev/planner/SKILL.md:129
+  Found: mkdir -p .waramity/requirement
+  Expected: mkdir -p .waramity/dev/requirement
+  Fix: Add /dev/ to path
+
+✅ OK: business/business-plan/SKILL.md
+✅ OK: design/brand-kit/SKILL.md
+✅ OK: dev/doer/SKILL.md
+
+=== Summary ===
+Total paths checked: 15
+Valid: 13
+Need update: 2
+```
+
+### Step 4: Fix Output Path Issues
+
+When user approves fixes:
+
+```bash
+# For each mismatch, update the path in the SKILL.md file
+# Example: .waramity/wip → .waramity/dev/wip
+
+# Use sed or direct file edit
+# Always show the exact line being changed
+```
+
+### Validation Patterns
+
+These patterns indicate output paths to check:
+
+| Pattern | Example |
+|---------|---------|
+| `mkdir -p` | `mkdir -p .waramity/dev/wip` |
+| `Save to:` | `Save to: .waramity/business/plan.md` |
+| `# File:` | `# File: .waramity/design/brand-kit.md` |
+| Path in code block | ``` File: .waramity/dev/requirement/... ``` |
+
+### Edge Cases
+
+- **Nested paths are OK**: `.waramity/business/wbs/` is valid for business category
+- **Root .waramity is NOT OK**: `.waramity/requirement/` should be `.waramity/dev/requirement/`
+- **Skip non-category skills**: `setup/` skills don't need output path validation
+- **Multiple paths in one file**: Check all of them
 
 ---
 
@@ -222,9 +331,19 @@ Claude Code skills for development workflows.
 
 ## Quick Commands
 
-### Validate only (no GitHub sync)
+### Validate routers only (no GitHub sync)
 ```
 /waramity → "check skills" or "validate skills"
+```
+
+### Validate output paths only
+```
+/waramity → "check output paths" or "validate outputs"
+```
+
+### Validate all (routers + output paths)
+```
+/waramity → "validate all" or "full validation"
 ```
 
 ### Validate and fix
@@ -281,7 +400,7 @@ Check: Is the hierarchy consistent?
 ## Expected Output
 
 ```
-=== Part 1: Skill Validation ===
+=== Part 1a: Skill Router Validation ===
 
 Scanning .claude/skills/waramity/...
 
@@ -293,6 +412,22 @@ Scanning .claude/skills/waramity/...
   Suggestion: Change to "dev/track/SKILL.md"
 
 Summary: 11/12 valid, 1 issue found
+
+Fix this issue? [Y/n]
+
+=== Part 1b: Output Path Validation ===
+
+Checking output paths in business/, design/, dev/ skills...
+
+✓ OK: business/business-plan/SKILL.md → .waramity/business/
+✓ OK: business/work-breakdown/SKILL.md → .waramity/business/wbs/
+✓ OK: design/brand-kit/SKILL.md → .waramity/design/
+✓ OK: dev/planner/SKILL.md → .waramity/dev/requirement/
+✗ WRONG DIR: dev/save-wip/SKILL.md:106
+  Found: mkdir -p .waramity/wip
+  Expected: mkdir -p .waramity/dev/wip
+
+Summary: 14/15 valid, 1 issue found
 
 Fix this issue? [Y/n]
 

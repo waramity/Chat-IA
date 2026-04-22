@@ -98,7 +98,7 @@ Before saving, verify:
 
 ## Step 5 — Save & Present
 
-Save to: `/mnt/user-data/outputs/[kebab-case-product-name]-business-plan.md`
+Save to: `.waramity/business/[kebab-case-product-name]-business-plan.md`
 
 Then call `present_files` with the output path.
 

@@ -126,7 +126,7 @@ Each REQ gets its own file named `{NNNN}-{slug}.md` — never append to a shared
 **Always use this exact bash pattern — no exceptions:**
 
 ```bash
-mkdir -p .waramity/requirement
+mkdir -p .waramity/dev/requirement
 
 # Find next REQ number by scanning existing filenames
 LAST=$(ls .waramity/dev/requirement/ 2>/dev/null | grep -oE '^[0-9]+' | sort -n | tail -1)

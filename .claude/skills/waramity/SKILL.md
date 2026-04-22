@@ -17,7 +17,7 @@ Read the user's message and select **one** sub-skill:
 |--------|-----------|-----------------|
 | Initialize project | **init** | "init waramity", "setup waramity", "initialize .waramity", "setup project" |
 | Sync skills local/remote | **sync** | "sync skills", "push skills", "pull skills", "sync waramity", "upload skills to github", "download latest skills", "push local to remote", "pull remote to local" |
-| Validate skill references | **update** | "check skills", "validate skills", "fix skill paths", "skill integrity", "update references" |
+| Validate skill references & output paths | **update** | "check skills", "validate skills", "fix skill paths", "skill integrity", "update references", "check output paths", "validate outputs", "validate all" |
 | Connect to external skills | **connect** | "connect skill", "link skill", "integrate skill", "connect to", "link waramity to", "connect design to ui-ux-pro-max" |
 
 ### Dev Skills
@@ -87,7 +87,7 @@ Once identified, follow the full workflow from that sub-skill exactly as if it h
 
 If the intent is ambiguous, ask the user:
 > "Which workflow do you want?
-> - **Utility**: init, sync (push/pull skills), update (validate references), or connect (link external skills)?
+> - **Utility**: init, sync (push/pull skills), update (validate references + output paths), or connect (link external skills)?
 > - **Dev**: plan, do REQ, save WIP, ship, track, gh-remote, or fail REQ?
 > - **Business**: business plan, app analysis, keyword trend, solo rank, or work breakdown?
 > - **Design**: brand-kit, ux-flow, wireframe, ui-mockup, icon-set, or ux-copy?"

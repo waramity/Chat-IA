@@ -103,7 +103,7 @@ Each WIP gets its own file named `{NNNN}-{slug}.md` — never append to a shared
 **Always use this exact bash pattern — no exceptions:**
 
 ```bash
-mkdir -p .waramity/wip
+mkdir -p .waramity/dev/wip
 
 # Find next WIP number by scanning existing filenames
 LAST=$(ls .waramity/dev/wip/ 2>/dev/null | grep -oP '^\d+' | sort -n | tail -1)
