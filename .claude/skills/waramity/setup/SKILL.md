@@ -3,10 +3,10 @@ name: setup
 description: >
   Setup and maintenance utilities for waramity skills.
   Routes to: init (project setup), sync (sync with remote), update (validate references),
-  connect (link waramity skills to external skills).
+  connect (link waramity skills to external skills), install-skill (install from registry).
   Triggers on: "setup waramity", "init project", "sync skills", "pull skills", "push skills",
   "check skills", "validate skills", "fix skill paths", "initialize waramity",
-  "connect skill", "link skill", "integrate skill".
+  "connect skill", "link skill", "integrate skill", "install skill", "list skills", "available skills".
 ---
 
 # Skill: setup
@@ -21,6 +21,7 @@ Router for waramity setup and maintenance operations.
 | **sync** | Sync skills with GitHub remote | "sync skills", "pull skills", "push skills", "upload to github", "download skills" |
 | **update** | Validate and fix skill references | "check skills", "validate skills", "fix skill paths", "skill integrity", "update references" |
 | **connect** | Link waramity skills to external skills | "connect skill", "link skill", "integrate skill", "connect to", "link waramity to" |
+| **install-skill** | Install skills from registry | "install skill", "list skills", "available skills", "add skill", "uninstall skill" |
 
 ---
 
@@ -50,6 +51,13 @@ Router for waramity setup and maintenance operations.
 - User mentions "connect", "link", "integrate" with skill references
 - User wants to create cross-skill documentation
 - User mentions external skill paths (e.g., "ui-ux-pro-max")
+
+### Route to `install-skill` when:
+- User wants to see available skills to install
+- User mentions "install skill", "list skills", "available skills"
+- User wants to add a new skill from the registry
+- User wants to uninstall a skill
+- User asks "what skills can I install"
 
 ---
 
@@ -88,8 +96,27 @@ Creates:
 ```
 .waramity/
 └── memory/
-    └── connected-skills/
+    └── connected-skill/
         └── design--ui-ux-pro-max.md
+```
+
+### Install skills from registry
+```
+/waramity → "list skills"           # Show available skills
+/waramity → "install ui-ux-pro-max" # Install and auto-connect
+/waramity → "show installed"        # List installed skills
+/waramity → "uninstall skill-name"  # Remove a skill
+```
+Creates:
+```
+.waramity/
+└── memory/
+    └── installed-skill/
+        └── ui-ux-pro-max.md
+.claude/
+└── skills/
+    └── external/
+        └── ui-ux-pro-max/
 ```
 
 ---
@@ -97,5 +124,5 @@ Creates:
 ## Rules
 
 - Always route to the appropriate sub-skill based on user intent
-- If unclear, ask: "Do you want to (1) initialize a project, (2) sync skills with GitHub, (3) check/fix skill references, or (4) connect to an external skill?"
+- If unclear, ask: "Do you want to (1) initialize a project, (2) sync skills with GitHub, (3) check/fix skill references, (4) connect to an external skill, or (5) install skills from registry?"
 - Never perform multiple operations without explicit user request
